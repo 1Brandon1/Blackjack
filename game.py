@@ -20,7 +20,7 @@ class Game:
                 self.handleDealerBlackjack()
             else:
                 self.playerTurns()
-                if any(handValue <= 21 for player in self.players for handValue in player.handValues()):
+                if any(p.handValue() <= 21 for p in self.players):
                     self.dealerTurn()
                 self.resolveRound()
 
@@ -46,7 +46,7 @@ class Game:
                     amount = int(raw)
                     if amount <= 0:
                         raise ValueError("⚠️ Bet must be positive.")
-                    player.placeBet(0, amount)
+                    player.placeBet(amount)
                     break
                 except ValueError as e:
                     print(f"⚠️ Invalid bet: {e}")
@@ -57,7 +57,7 @@ class Game:
     def dealInitialCards(self):
         for _ in range(2):
             for player in self.players:
-                player.receiveCard(0, self.shoe.drawCard())
+                player.receiveCard(self.shoe.drawCard())
             self.dealer.receiveCard(self.shoe.drawCard())
 
     def showDealerUpcard(self):
@@ -72,7 +72,7 @@ class Game:
 
         print("\n⚠️ Dealer shows an Ace! Offering insurance...")
         for player in self.players:
-            if player.balance >= player.currentBet(0) // 2:
+            if player.balance >= player.currentBet // 2:
                 while True:
                     try:
                         choice = input(f"{player.name}, do you want insurance? (y/n): ").strip().lower()
@@ -85,7 +85,7 @@ class Game:
 
                 if choice == 'y':
                     try:
-                        insuranceAmount = player.currentBet(0) // 2
+                        insuranceAmount = player.currentBet // 2
                         player.placeInsurance(insuranceAmount)
                         print(f"{player.name} placed an insurance bet of {insuranceAmount} chips.")
                     except ValueError as e:
@@ -98,49 +98,44 @@ class Game:
 
     def playerTurns(self):
         for player in self.players:
-            handIndex = 0
-            while handIndex < len(player.hands):
-                print(f"\n🎲 {player.name}'s Turn — Hand {handIndex + 1}")
-                while True:
-                    value = player.handValue(handIndex)
-                    print(f"🃏 {player.showHand(handIndex)} [Value: {value}]")
+            print(f"\n🎲 {player.name}'s Turn")
+            while True:
+                print(f"🃏 {player.showHand()} [Value: {player.handValue()}]")
 
-                    if player.isBlackjack(handIndex):
-                        print("✅ Blackjack!")
-                        break
-                    if value >= 21:
-                        if value > 21:
-                            print("❌ Busted!")
-                        break
+                if player.isBlackjack():
+                    print("✅ Blackjack!")
+                    break
 
-                    options = "(h)it, (s)tand"
-                    if player.canDouble(handIndex):
-                        options += ", (d)ouble"
-                    if player.canSplit(handIndex):
-                        options += ", s(p)lit"
+                if player.handValue() >= 21:
+                    if player.handValue() > 21:
+                        print("❌ Busted!")
+                    elif player.handValue() == 21:
+                        print("🛑 You have 21. Automatically standing.")
+                    break
 
-                    try:
-                        action = input(f"➡️  Choose action {options}: ").strip().lower()
-                    except (EOFError, KeyboardInterrupt):
-                        print("\n👋 Exiting game.")
-                        sys.exit()
+                # Build dynamic action prompt
+                actions = ['(h)it', '(s)tand']
+                if player.canDouble():
+                    actions.append('(d)ouble')
+                action_prompt = "➡️  Choose action " + ", ".join(actions) + ": "
 
-                    if action in ['hit', 'h']:
-                        player.receiveCard(handIndex, self.shoe.drawCard())
-                    elif action in ['stand', 's']:
-                        break
-                    elif action in ['d', 'double'] and player.canDouble(handIndex):
-                        player.doubleDown(handIndex)
-                        player.receiveCard(handIndex, self.shoe.drawCard())
-                        print(f"🃏 {player.showHand(handIndex)} [Value: {player.handValue(handIndex)}]")
-                        break
-                    elif action in ['p', 'split'] and player.canSplit(handIndex):
-                        player.splitHand(handIndex, self.shoe)
-                        print("🪓 Hand split!")
-                        break  # Restart with this hand from 0
-                    else:
-                        print("⚠️ Invalid input.")
-                handIndex += 1
+                try:
+                    action = input(action_prompt).strip().lower()
+                except (EOFError, KeyboardInterrupt):
+                    print("\n👋 Exiting game.")
+                    sys.exit()
+
+                if action in ['hit', 'h']:
+                    player.receiveCard(self.shoe.drawCard())
+                elif action in ['stand', 's']:
+                    break
+                elif action in ['double', 'd'] and player.canDouble():
+                    player.doubleDown()
+                    player.receiveCard(self.shoe.drawCard())
+                    print(f"🃏 {player.showHand()} [Value: {player.handValue()}]")
+                    break
+                else:
+                    print("⚠️ Invalid input.")
 
     def dealerTurn(self):
         print(f"\n🂠 Dealer's hand: {self.dealer.showHand()} [Value: {self.dealer.handValue()}]")
@@ -154,38 +149,37 @@ class Game:
         print(f"\n🔚 Dealer stands at {dealerScore}")
 
         for player in self.players:
-            for i in range(len(player.hands)):
-                score = player.handValue(i)
-                blackjack = player.isBlackjack(i)
-                bet = player.currentBet(i)
-                insurance = player.insuranceBet
+            playerScore = player.handValue()
+            playerBlackjack = player.isBlackjack()
+            bet = player.currentBet
+            insurance = player.insuranceBet
 
-                if insurance > 0:
-                    if dealerBlackjack:
-                        payout = insurance * 2
-                        player.balance += payout
-                        print(f"✅ {player.name} wins insurance bet! +{payout} chips.")
-                    player.insuranceBet = 0
+            # Insurance resolution
+            if insurance > 0:
+                if dealerBlackjack:
+                    payout = insurance * 2
+                    player.balance += payout
+                    print(f"✅ {player.name} wins insurance bet! +{payout} chips.")
+                player.insuranceBet = 0
 
-                label = f"{player.name} (Hand {i + 1})" if len(player.hands) > 1 else player.name
-
-                if blackjack and not dealerBlackjack:
-                    winnings = int(bet * 2.5)
-                    player.balance += winnings
-                    print(f"🎉 {label} has Blackjack! +{winnings} chips.")
-                elif dealerBlackjack:
-                    print(f"❌ {label} loses. Dealer has Blackjack.")
-                elif score > 21:
-                    print(f"💥 {label} busted.")
-                elif dealerScore > 21 or score > dealerScore:
-                    winnings = bet * 2
-                    player.balance += winnings
-                    print(f"🏆 {label} wins! +{winnings} chips.")
-                elif score == dealerScore:
-                    player.balance += bet
-                    print(f"🤝 {label} pushes.")
-                else:
-                    print(f"❌ Dealer beats {label}.")
+            # Main bet resolution
+            if playerBlackjack and not dealerBlackjack:
+                winnings = int(bet * 2.5)
+                player.balance += winnings
+                print(f"🎉 {player.name} has Blackjack! +{winnings} chips.")
+            elif dealerBlackjack:
+                print(f"❌ {player.name} loses. Dealer has Blackjack.")
+            elif playerScore > 21:
+                print(f"💥 {player.name} busted.")
+            elif dealerScore > 21 or playerScore > dealerScore:
+                winnings = bet * 2
+                player.balance += winnings
+                print(f"🏆 {player.name} wins! +{winnings} chips.")
+            elif playerScore == dealerScore:
+                player.balance += bet
+                print(f"🤝 {player.name} pushes.")
+            else:
+                print(f"❌ Dealer beats {player.name}.")
 
     def askToPlayAgain(self):
         while True:

@@ -1,96 +1,67 @@
+from cards import Card
+
 class Player:
     def __init__(self, name="Player", startBalance=5000):
         self.name = name
+        self.hand = []
         self.balance = startBalance
-        self.hands = [[]]  # A list of hands to support splits
-        self.bets = [0]
+        self.currentBet = 0
         self.insuranceBet = 0
-        self.doubled = [False]
+        self.hasDoubled = False
 
     def clearHand(self):
-        self.hands = [[]]
-        self.bets = [0]
-        self.doubled = [False]
+        self.hand = []
+        self.currentBet = 0
         self.insuranceBet = 0
+        self.hasDoubled = False
 
-    def receiveCard(self, handIndex, card):
-        self.hands[handIndex].append(card)
+    def receiveCard(self, card):
+        self.hand.append(card)
 
-    def showHand(self, handIndex):
-        return ' '.join(str(card) for card in self.hands[handIndex])
-
-    def handValue(self, handIndex):
-        total = 0
-        aces = 0
-        for card in self.hands[handIndex]:
-            val = card.value()
-            total += val
-            if card.rank == 'A':
-                aces += 1
+    def showHand(self):
+        return " ".join(str(c) for c in self.hand)
+    
+    def handValue(self):
+        total = sum(card.value() for card in self.hand)
+        aces = sum(1 for c in self.hand if c.rank == 'A')
         while total > 21 and aces:
             total -= 10
             aces -= 1
         return total
 
-    def handValues(self):
-        return [self.handValue(i) for i in range(len(self.hands))]
-
-    def isBlackjack(self, handIndex):
-        return len(self.hands[handIndex]) == 2 and self.handValue(handIndex) == 21
-
-    def currentBet(self, handIndex):
-        return self.bets[handIndex]
-
-    def placeBet(self, handIndex, amount):
+    def isBlackjack(self):
+        return len(self.hand) == 2 and self.handValue() == 21
+    
+    def placeBet(self, amount):
         if amount > self.balance:
-            raise ValueError("Not enough chips to place bet.")
-        self.bets[handIndex] = amount
+            raise ValueError("Not enough balance to place bet.")
         self.balance -= amount
+        self.currentBet = amount
 
     def placeInsurance(self, amount):
         if amount > self.balance:
-            raise ValueError("Not enough chips for insurance.")
-        self.insuranceBet = amount
+            raise ValueError("Not enough balance for insurance.")
         self.balance -= amount
+        self.insuranceBet = amount
 
-    def canDouble(self, handIndex):
-        return len(self.hands[handIndex]) == 2 and self.balance >= self.bets[handIndex]
+    def canDouble(self):
+        return len(self.hand) == 2 and self.balance >= self.currentBet
 
-    def doubleDown(self, handIndex):
-        if not self.canDouble(handIndex):
-            raise ValueError("Cannot double down.")
-        self.balance -= self.bets[handIndex]
-        self.bets[handIndex] *= 2
-        self.doubled[handIndex] = True
+    def doubleDown(self):
+        if not self.canDouble():
+            raise ValueError("Cannot double down right now.")
+        self.balance -= self.currentBet
+        self.currentBet *= 2
+        self.hasDoubled = True
 
-    def canSplit(self, handIndex):
-        hand = self.hands[handIndex]
-        return (
-            len(hand) == 2 and
-            hand[0].rank == hand[1].rank and
-            self.balance >= self.bets[handIndex]
-        )
-
-    def splitHand(self, handIndex, shoe):
-        # Remove one card from the original hand
-        original_card = self.hands[handIndex].pop()
-
-        # Create a new hand with the split card
-        newHand = [original_card]
-        self.hands.append(newHand)
-
-        # Draw one card to each hand
-        self.hands[handIndex].append(shoe.drawCard())
-        self.hands[-1].append(shoe.drawCard())
-
-        # Add the new bet and doubled state
-        self.balance -= self.bets[handIndex]
-        self.bets.append(self.bets[handIndex])
-        self.doubled.append(False)
-    
 class Dealer(Player):
     def __init__(self):
-        super().__init__(name="Dealer")
+        super().__init__(name="Dealer", startBalance=0)
 
     def shouldHit(self):
         return self.handValue() < 17
+
+    def showHand(self, revealAll=True):
+        if not revealAll and len(self.hand) > 1:
+            return f"[Hidden] {self.hand[1]}"
+        return " ".join(str(c) for c in self.hand)
