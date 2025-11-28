@@ -92,12 +92,14 @@ class Game:
                     handIndex += 1
                     continue
 
-                # Build dynamic action prompt
+                # Build available actions
                 actions = ['(h)it', '(s)tand']
-                if hand.canSplit(player.balance):
-                    actions.append('s(p)lit')
-                if len(hand.cards) == 2 and player.balance >= hand.bet:
-                    actions.append('(d)ouble')
+                if len(hand.cards) == 2:
+                    if player.balance >= hand.bet:
+                        actions.append('(d)ouble')
+                    if hand.canSplit(player.balance):
+                        actions.append('s(p)lit')
+                    actions.append('s(u)rrender')
 
                 actionPrompt = "➡️ Choose action " + ", ".join(actions) + ": "
                 try:
@@ -130,6 +132,13 @@ class Game:
                     player.hands[handIndex] = newHand1
                     player.hands.insert(handIndex + 1, newHand2)
                     # Do not increment handIndex: process newHand1 next
+                elif action in ['surrender', 'u'] and len(hand.cards) == 2:
+                    refund = hand.bet // 2
+                    player.balance += refund
+                    print(f"💸 {player.name} surrenders. Half bet returned: {refund} chips.")
+                    hand.bet = 0
+                    hand.finished = True
+                    handIndex += 1
                 else:
                     print("⚠️ Invalid input.")
 
@@ -208,4 +217,3 @@ class Game:
             if response == 'n':
                 print("\n🃏 Thanks for playing! Goodbye.")
                 break
-
