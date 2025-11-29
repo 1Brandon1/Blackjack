@@ -5,12 +5,13 @@ class Hand:
         self.bet = bet
         self.insuranceBet = 0
         self.hasDoubled = False
-        self.finished = False  
+        self.finished = False  # True when the hand has completed its turn
 
     def addCard(self, card):
         self.cards.append(card)
 
     def value(self):
+        # Calculate total hand value, adjusting for Aces as 1 or 11
         total = sum(c.value() for c in self.cards)
         aces = sum(1 for c in self.cards if c.rank == 'A')
         while total > 21 and aces:
@@ -22,6 +23,7 @@ class Hand:
         return len(self.cards) == 2 and self.value() == 21
 
     def canSplit(self, balance):
+        # Can split if exactly 2 cards of same rank and player has enough balance
         return len(self.cards) == 2 and self.cards[0].rank == self.cards[1].rank and balance >= self.bet
 
     def show(self):
@@ -31,7 +33,7 @@ class Player:
     def __init__(self, name="Player", startBalance=5000):
         self.name = name
         self.balance = startBalance
-        self.hands = []
+        self.hands = [] # Supports multiple hands after splitting
 
     def startNewHand(self, bet):
         self.balance -= bet

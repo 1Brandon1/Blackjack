@@ -4,20 +4,21 @@ import sys
 
 class Game:
     def __init__(self, playerNames):
-        self.shoe = Shoe()
+        self.shoe = Shoe()  # Initialise card shoe
         self.players = [Player(name) for name in playerNames]
         self.dealer = Dealer()
 
     def setupRound(self):
-        self.dealer.clearHand()
-        self.players = [p for p in self.players if p.balance > 0]
+        self.dealer.clearHand()  # Reset dealer's hand
+        self.players = [p for p in self.players if p.balance > 0]  # Remove broke players
         for player in self.players:
-            player.clearHands()
+            player.clearHands()  # Reset each player's hands
         if not self.players:
             print("💸 All players are out of chips. Game over.")
             sys.exit()
 
     def takeBets(self):
+        # Prompt each player to place a valid bet
         for player in self.players:
             while True:
                 try:
@@ -36,6 +37,7 @@ class Game:
                     sys.exit()
 
     def dealInitialCards(self):
+        # Deal 2 cards to each hand and dealer
         for _ in range(2):
             for player in self.players:
                 for hand in player.hands:
@@ -43,6 +45,7 @@ class Game:
             self.dealer.hand.addCard(self.shoe.drawCard())
 
     def offerInsurance(self):
+        # Only offer if dealer's second card is an Ace
         if len(self.dealer.hand.cards) < 2 or self.dealer.hand.cards[1].rank != 'A':
             return
 
@@ -61,7 +64,7 @@ class Game:
                             sys.exit()
                     if choice == 'y':
                         insuranceAmount = hand.bet // 2
-                        hand.insuranceBet = insuranceAmount
+                        hand.insuranceBet = insuranceAmount  # Track insurance bet separately
                         player.balance -= insuranceAmount
                         print(f"{player.name} placed an insurance bet of {insuranceAmount} chips.")
 
@@ -71,7 +74,7 @@ class Game:
             while handIndex < len(player.hands):
                 hand = player.hands[handIndex]
 
-                if hand.finished:
+                if hand.finished:  # Skip finished hands
                     handIndex += 1
                     continue
 
@@ -83,7 +86,7 @@ class Game:
                     handIndex += 1
                     continue
 
-                if hand.value() >= 21:
+                if hand.value() >= 21:  # Auto-stand or bust
                     if hand.value() > 21:
                         print("❌ Busted!")
                     else:
@@ -94,7 +97,7 @@ class Game:
 
                 # Build available actions
                 actions = ['(h)it', '(s)tand']
-                if len(hand.cards) == 2:
+                if len(hand.cards) == 2:  # Only first two cards allow these
                     if player.balance >= hand.bet:
                         actions.append('(d)ouble')
                     if hand.canSplit(player.balance):
@@ -108,6 +111,7 @@ class Game:
                     print("\n👋 Exiting game.")
                     sys.exit()
 
+                # Handle chosen action
                 if action in ['hit', 'h']:
                     hand.addCard(self.shoe.drawCard())
                 elif action in ['stand', 's']:
@@ -123,12 +127,11 @@ class Game:
                     handIndex += 1
                 elif action in ['split', 'p'] and hand.canSplit(player.balance):
                     player.balance -= hand.bet
-                    # Create two new hands
+                    # Split into two hands
                     newHand1 = Hand(cards=[hand.cards[0]], bet=hand.bet)
                     newHand2 = Hand(cards=[hand.cards[1]], bet=hand.bet)
                     newHand1.addCard(self.shoe.drawCard())
                     newHand2.addCard(self.shoe.drawCard())
-                    # Replace current hand with first new hand and insert second
                     player.hands[handIndex] = newHand1
                     player.hands.insert(handIndex + 1, newHand2)
                     # Do not increment handIndex: process newHand1 next
@@ -144,7 +147,7 @@ class Game:
 
     def dealerTurn(self):
         print(f"\n🂠 Dealer's hand: {self.dealer.showHand()} [Value: {self.dealer.hand.value()}]")
-        while self.dealer.shouldHit():
+        while self.dealer.shouldHit():  # Dealer hits until rules say stand
             self.dealer.hand.addCard(self.shoe.drawCard())
             print(f"🂡 Dealer hits: {self.dealer.showHand()} [Value: {self.dealer.hand.value()}]")
 
@@ -159,7 +162,7 @@ class Game:
                 playerScore = hand.value()
                 print(f"\n💵 {player.name} - Hand {handIndex + 1}: {hand.show()} [Value: {playerScore}]")
 
-                # Insurance
+                # Insurance resolution
                 if hand.insuranceBet > 0:
                     if dealerBlackjack:
                         payout = hand.insuranceBet * 2
@@ -204,7 +207,7 @@ class Game:
                     self.dealerTurn()
                 self.resolveRound()
 
-            # Play again?
+            # Ask to play again
             while True:
                 try:
                     response = input("\n🔁 Play another round? (y/n): ").strip().lower()
