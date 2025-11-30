@@ -19,10 +19,10 @@ Supports advanced casino rules including **splitting**, **double down**, **insur
 
 -   Adjustable player bets with balance tracking
 -   Automatic win, loss, and push payouts
--   ✔ **Double Down** — double bet and take one card
--   ✔ **Insurance** — optional side bet when dealer shows an Ace
--   ✔ **Surrender** — forfeit half your bet early
--   ✔ **Hand Splitting** — split matching cards into two hands
+-   ✔ **Double Down** - double bet and take one card
+-   ✔ **Insurance** - optional side bet when dealer shows an Ace
+-   ✔ **Surrender** - forfeit half your bet early
+-   ✔ **Hand Splitting** - split matching cards into two hands
 
 ---
 
