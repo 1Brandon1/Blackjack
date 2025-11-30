@@ -1,6 +1,7 @@
 from game import Game
 
-def printTitle():
+
+def print_title():
     print("""
   ==============================
            🂡 BLACKJACK 🂡
@@ -8,7 +9,8 @@ def printTitle():
   ==============================
     """)
 
-def getNumPlayers():
+
+def get_num_players():
     while True:
         try:
             num = int(input("👥 Enter number of players (1–7): "))
@@ -21,9 +23,10 @@ def getNumPlayers():
             print("\n👋 Exiting game.")
             exit()
 
-def getPlayerNames(numPlayers):
+
+def get_player_names(num_players):
     names = []
-    for i in range(numPlayers):
+    for i in range(num_players):
         try:
             name = input(f"🧑 Enter name for player {i + 1}: ").strip()
             if not name:
@@ -35,13 +38,15 @@ def getPlayerNames(numPlayers):
     print()
     return names
 
-def main():
-    printTitle()
-    numPlayers = getNumPlayers()
-    playerNames = getPlayerNames(numPlayers)
 
-    game = Game(playerNames)
+def main():
+    print_title()
+    num_players = get_num_players()
+    player_names = get_player_names(num_players)
+
+    game = Game(player_names)
     game.play()
+
 
 if __name__ == "__main__":
     main()
